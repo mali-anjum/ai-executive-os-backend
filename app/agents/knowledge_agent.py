@@ -135,8 +135,9 @@ class KnowledgeAgent:
         return {"answer": answer, "context": context, "citations": citations}
 
     async def _format_citations(self, state: KnowledgeState) -> KnowledgeStateUpdate:
-        if state.get("citations"):
-            return {"citations": state["citations"]}
+        existing_citations = state.get("citations")
+        if existing_citations:
+            return {"citations": existing_citations}
         citations = []
         for item in state.get("chunk_items", []):
             citations.append(
