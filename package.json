@@ -1,0 +1,48 @@
+{
+  "name": "ai-executive-os-backend",
+  "version": "0.1.0",
+  "private": true,
+  "description": "dev → .env.dev + Docker. prod → .env.production + remote Supabase.",
+  "scripts": {
+    "setup": "python3 -m venv .venv && .venv/bin/pip install -r requirements.txt && pnpm install",
+
+    "deps:docker": "docker compose -f docker/docker-compose.yml up -d postgres",
+    "deps:docker:all": "docker compose -f docker/docker-compose.yml up -d postgres redis",
+
+    "db:check": "ENV_FILE=.env.dev .venv/bin/python scripts/check_services.py",
+    "db:migrate": "bash scripts/db_push.sh .env.dev",
+    "db:migration:list": "bash -c 'set -a && source .env.dev && set +a && DB_URL=\"${DATABASE_URL/postgresql+asyncpg/postgresql}\"; DB_URL=\"${DB_URL/:6543/:5432}\"; supabase migration list --db-url \"$DB_URL\"'",
+    "db:check:prod": "ENV_FILE=.env.production .venv/bin/python scripts/check_services.py",
+    "db:migrate:prod": "bash scripts/db_push.sh .env.production",
+
+    "check:env": "ENV_FILE=.env.dev .venv/bin/python scripts/validate_env.py",
+    "check:prod": "ENV_FILE=.env.production .venv/bin/python scripts/validate_env.py --production",
+    "verify:supabase": "ENV_FILE=.env.production .venv/bin/python scripts/verify_supabase_env.py",
+
+    "api": "ENV_FILE=.env.dev .venv/bin/uvicorn app.main:app --reload --host 127.0.0.1 --port 8000",
+    "worker": "ENV_FILE=.env.dev .venv/bin/watchfiles --filter python '.venv/bin/celery -A app.tasks.celery_app.celery_app worker --loglevel=info' app/tasks",
+    "api:prod": "ENV_FILE=.env.production .venv/bin/uvicorn app.main:app --reload --host 127.0.0.1 --port 8000",
+    "worker:prod": "ENV_FILE=.env.production .venv/bin/watchfiles --filter python '.venv/bin/celery -A app.tasks.celery_app.celery_app worker --loglevel=info' app/tasks",
+    "check:celery": ".venv/bin/python scripts/check_celery_tasks.py",
+    "doc:reprocess": "ENV_FILE=.env.dev .venv/bin/python scripts/reprocess_document.py",
+    "doc:reprocess:prod": "ENV_FILE=.env.production .venv/bin/python scripts/reprocess_document.py",
+    "demo:seed": "ENV_FILE=.env.dev .venv/bin/python scripts/seed_demo.py",
+    "demo:seed:prod": "ENV_FILE=.env.production .venv/bin/python scripts/seed_demo.py",
+    "test:unit": ".venv/bin/python -m pytest tests/unit/ -q",
+    "test:ci": ".venv/bin/python -m pytest tests/unit/ -q --tb=short",
+    "typecheck": ".venv/bin/python -m pyright app",
+
+    "predev": "pnpm run check:celery && pnpm run db:check && pnpm run db:migrate",
+    "preprod": "pnpm run verify:supabase && pnpm run check:prod && pnpm run check:celery && pnpm run db:check:prod && pnpm run db:migrate:prod",
+
+    "dev": "pnpm run deps:docker:all && pnpm run check:env && concurrently -k -n api,worker -c blue,magenta \"pnpm run api\" \"pnpm run worker\"",
+    "prod": "concurrently -k -n api,worker -c blue,magenta \"pnpm run api:prod\" \"pnpm run worker:prod\"",
+    "dev:prod": "pnpm run prod",
+
+    "bootstrap": "pnpm run deps:docker && pnpm run setup && pnpm run db:migrate"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  },
+  "packageManager": "pnpm@11.17.0"
+}

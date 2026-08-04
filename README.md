@@ -31,7 +31,8 @@ Background work runs in **Celery** (Redis broker). Local dev starts Postgres (+ 
 | Tool | Version | Used for |
 |------|---------|----------|
 | **Python** | 3.12+ (`python3`) | FastAPI, Alembic, Celery |
-| **Node.js** | 18+ | `npm run` orchestration only (not the runtime) |
+| **Node.js** | 18+ | `pnpm run` orchestration only (not the runtime) |
+| **pnpm** | 11.17.0 | Package manager (via `corepack`) |
 | **Docker** | recent | Local Postgres on host **5433**, Redis on **6380** when using `deps:docker:all` |
 | **Redis** | optional | `6379` if already running locally; else Docker maps **6380** |
 
@@ -55,8 +56,8 @@ Two active files — never commit secrets:
 
 | File | Used by | Purpose |
 |------|---------|---------|
-| `.env.dev` | `npm run dev` | Local Docker Postgres `:5433`, local Redis, development rules |
-| `.env.production` | `npm run prod` | Session pooler `DATABASE_URL`, Upstash `rediss://`, production validation |
+| `.env.dev` | `pnpm run dev` | Local Docker Postgres `:5433`, local Redis, development rules |
+| `.env.production` | `pnpm run prod` | Session pooler `DATABASE_URL`, Upstash `rediss://`, production validation |
 
 ### Don't confuse: `ENV_FILE` vs `APP_ENV`
 
@@ -64,18 +65,18 @@ These are **two separate knobs**. New contributors should read this before editi
 
 | | **`ENV_FILE` (which file)** | **`APP_ENV` (behavior inside the file)** |
 |--|-----------------------------|------------------------------------------|
-| **Set by** | `npm` scripts: `ENV_FILE=.env.dev` or `ENV_FILE=.env.production` | A variable **inside** that file: `APP_ENV=development` or `APP_ENV=production` |
+| **Set by** | `pnpm` scripts: `ENV_FILE=.env.dev` or `ENV_FILE=.env.production` | A variable **inside** that file: `APP_ENV=development` or `APP_ENV=production` |
 | **Defined in code** | [`app/core/config.py`](app/core/config.py) — `os.getenv("ENV_FILE", ".env.dev")` | Same file — field `app_env` / `settings.is_development` |
 | **Controls** | `DATABASE_URL`, `REDIS_URL`, `SUPABASE_URL`, API keys, etc. | Auth strictness, startup validation, LLM production checks |
 
-**Common mistake:** changing only `APP_ENV=production` in `.env.dev` while running `npm run dev`.  
+**Common mistake:** changing only `APP_ENV=production` in `.env.dev` while running `pnpm run dev`.  
 That still loads **`.env.dev`** (local Docker DB), but disables dev auth headers and enables production rules.  
-**Correct prod-like test:** fill **`backend/.env.production`** and run **`npm run prod`**.
+**Correct prod-like test:** fill **`backend/.env.production`** and run **`pnpm run prod`**.
 
 ```bash
 # Which file loads (backend)
-npm run dev   # ENV_FILE=.env.dev
-npm run prod  # ENV_FILE=.env.production
+pnpm run dev   # ENV_FILE=.env.dev
+pnpm run prod  # ENV_FILE=.env.production
 
 # Manual uvicorn — must set ENV_FILE yourself
 ENV_FILE=.env.production .venv/bin/uvicorn app.main:app --reload
@@ -126,14 +127,14 @@ From **repo root** (recommended):
 git clone <repo-url> ai-executive-os
 cd ai-executive-os
 
-npm install
-npm run setup
+pnpm install
+pnpm run setup
 
 cp backend/.env.example backend/.env.dev
 cp frontend/.env.example frontend/.env.dev
 # Edit backend/.env.dev and frontend/.env.dev
 
-cd backend && npm run bootstrap
+cd backend && pnpm run bootstrap
 ```
 
 `bootstrap` = Docker Postgres → Python `.venv` + pip → Alembic migrate on local DB.
@@ -144,28 +145,28 @@ cd backend && npm run bootstrap
 cd backend
 cp .env.example .env.dev
 # Edit .env.dev
-npm run bootstrap
+pnpm run bootstrap
 ```
 
 ---
 
 ## Every day — local development
 
-`npm run dev` is a **single chained command**: Docker (Postgres + Redis) → env validation → DB check → migrate → API (**hot reload**) + Celery worker in parallel.
+`pnpm run dev` is a **single chained command**: Docker (Postgres + Redis) → env validation → DB check → migrate → API (**hot reload**) + Celery worker in parallel.
 
 ### One command (recommended)
 
 From **repo root** (backend + frontend):
 
 ```bash
-npm run dev
+pnpm run dev
 ```
 
 ### One command (this folder only)
 
 ```bash
 cd backend
-npm run dev
+pnpm run dev
 ```
 
 | URL | Service |
@@ -177,18 +178,18 @@ npm run dev
 After reboot, if containers stopped:
 
 ```bash
-npm run deps:docker:all
-npm run dev
+pnpm run deps:docker:all
+pnpm run dev
 ```
 
 ### Run API or worker alone
 
 | Command | What it does |
 |---------|----------------|
-| `npm run api` | Uvicorn only (`.env.dev`, assumes DB ready) |
-| `npm run worker` | Celery only |
-| `npm run deps:docker` | Postgres container only |
-| `npm run deps:docker:all` | Postgres + Redis |
+| `pnpm run api` | Uvicorn only (`.env.dev`, assumes DB ready) |
+| `pnpm run worker` | Celery only |
+| `pnpm run deps:docker` | Postgres container only |
+| `pnpm run deps:docker:all` | Postgres + Redis |
 
 `predev` (before `dev`) runs `db:check` + `db:migrate` automatically.
 
@@ -201,14 +202,14 @@ Connects to **remote Supabase** (Session pooler) and runs production env checks 
 ### One command (repo root)
 
 ```bash
-npm run prod
+pnpm run prod
 ```
 
 ### One command (this folder only)
 
 ```bash
 cd backend
-npm run prod
+pnpm run prod
 ```
 
 `preprod` runs: `verify:supabase` → `check:prod` → `db:check:prod` → `db:migrate:prod`.
@@ -216,62 +217,62 @@ npm run prod
 Prepare `.env.production` first — see [`context/docs/SUPABASE_REMOTE_DATABASE.md`](context/docs/SUPABASE_REMOTE_DATABASE.md).
 
 ```bash
-npm run verify:supabase
-npm run check:prod
+pnpm run verify:supabase
+pnpm run check:prod
 ```
 
-Alias: `npm run dev:prod` → same as `npm run prod`.
+Alias: `pnpm run dev:prod` → same as `pnpm run prod`.
 
 ---
 
 ## How to verify it works
 
 ```bash
-# After npm run dev
+# After pnpm run dev
 curl -s http://127.0.0.1:8000/api/v1/health
 
 # Postgres (port must match DATABASE_URL)
 PGPASSWORD=postgres psql -h 127.0.0.1 -p 5433 -U postgres -d sop_automator -c "SELECT 1;"
 
 # Env validation
-npm run check:env      # .env.dev
-npm run check:prod     # .env.production
-npm run db:check       # connectivity from .env.dev
+pnpm run check:env      # .env.dev
+pnpm run check:prod     # .env.production
+pnpm run db:check       # connectivity from .env.dev
 ```
 
 Pair with frontend: [`../frontend/README.md`](../frontend/README.md) — the frontend lives in its own repository.
 
 ---
 
-## npm scripts (full table)
+## pnpm scripts (full table)
 
 | Command | What it does |
 |---------|----------------|
-| `npm run setup` | Create `.venv`, `pip install`, npm dev deps |
-| `npm run bootstrap` | **First time:** Docker Postgres → setup → migrate |
-| `npm run deps:docker` | Start Postgres (`:5433`) |
-| `npm run deps:docker:all` | Postgres + Redis (`:6380` on host) |
-| `npm run check:env` | Validate `.env.dev` |
-| `npm run check:prod` | Validate `.env.production` |
-| `npm run verify:supabase` | URL, DB user ref, JWT project ref alignment |
-| `npm run db:check` | Test Postgres + Redis (dev) |
-| `npm run db:migrate` | `supabase db push` via `scripts/db_push.sh` (dev) |
-| `npm run db:check:prod` | Connectivity (production env) |
-| `npm run db:migrate:prod` | Migrations against production DB |
-| `npm run dev` | **Daily dev** — Docker + checks + API reload + Celery |
-| `npm run prod` | **Daily prod test** — verify + remote DB + API + Celery |
-| `npm run api` / `api:prod` | Uvicorn only |
-| `npm run worker` / `worker:prod` | Celery only |
+| `pnpm run setup` | Create `.venv`, `pip install`, pnpm dev deps |
+| `pnpm run bootstrap` | **First time:** Docker Postgres → setup → migrate |
+| `pnpm run deps:docker` | Start Postgres (`:5433`) |
+| `pnpm run deps:docker:all` | Postgres + Redis (`:6380` on host) |
+| `pnpm run check:env` | Validate `.env.dev` |
+| `pnpm run check:prod` | Validate `.env.production` |
+| `pnpm run verify:supabase` | URL, DB user ref, JWT project ref alignment |
+| `pnpm run db:check` | Test Postgres + Redis (dev) |
+| `pnpm run db:migrate` | `supabase db push` via `scripts/db_push.sh` (dev) |
+| `pnpm run db:check:prod` | Connectivity (production env) |
+| `pnpm run db:migrate:prod` | Migrations against production DB |
+| `pnpm run dev` | **Daily dev** — Docker + checks + API reload + Celery |
+| `pnpm run prod` | **Daily prod test** — verify + remote DB + API + Celery |
+| `pnpm run api` / `api:prod` | Uvicorn only |
+| `pnpm run worker` / `worker:prod` | Celery only |
 
 Scripts set `ENV_FILE=.env.dev` or `.env.production` and use `.venv/bin/` for Python tools.
 
-### Manual (without npm)
+### Manual (without pnpm)
 
 ```bash
 cd backend
 python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
-cd backend && npm run db:migrate
+cd backend && pnpm run db:migrate
 ENV_FILE=.env.dev uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
 # second terminal:
 ENV_FILE=.env.dev celery -A app.tasks.celery_app.celery_app worker --loglevel=info
@@ -303,7 +304,7 @@ backend/
 │   └── integration/            # API + DB (need stack running)
 ├── .env.example
 ├── requirements.txt
-└── package.json                # npm orchestration (not Python package name)
+└── package.json                # pnpm orchestration (not Python package name)
 ```
 
 ### Core files (start debugging here)
@@ -362,8 +363,8 @@ See [`app/models/README.md`](app/models/README.md) for the full folder map.
 From **repo root** or **`backend/`**:
 
 ```bash
-npm run typecheck              # root → backend Pyright
-cd backend && npm run typecheck
+pnpm run typecheck              # root → backend Pyright
+cd backend && pnpm run typecheck
 ```
 
 Config: [`pyrightconfig.json`](pyrightconfig.json) (venv `.venv`, `typeCheckingMode: standard`).  
@@ -383,7 +384,7 @@ cd backend
 
 ## Dev vs production (backend)
 
-Use the **file** (`npm run dev` / `prod`) for URLs and secrets; keep **`APP_ENV`** aligned with that file (usually `development` in `.env.dev`, `production` in `.env.production`).
+Use the **file** (`pnpm run dev` / `prod`) for URLs and secrets; keep **`APP_ENV`** aligned with that file (usually `development` in `.env.dev`, `production` in `.env.production`).
 
 | Variable | Development (`.env.dev`) | Production (`.env.production`) |
 |----------|--------------------------|--------------------------------|
@@ -410,10 +411,9 @@ Switch modes by command, not by overwriting a single `.env` file.
 
 | Goal | Command |
 |------|---------|
-| **First time** | `cp .env.example .env.dev` → edit → `npm run bootstrap` |
-| **Daily dev** | `npm run dev` (Docker + migrate + API + worker) |
-| **Daily prod test** | `npm run prod` (after `.env.production` is filled) |
-| **Verify prod env** | `npm run verify:supabase && npm run check:prod` |
-| **Migrations only** | `npm run db:migrate` or `npm run db:migrate:prod` |
-| **Full stack from root** | `npm run dev` or `npm run prod` |
-# ai-executive-os-backend
+| **First time** | `cp .env.example .env.dev` → edit → `pnpm run bootstrap` |
+| **Daily dev** | `pnpm run dev` (Docker + migrate + API + worker) |
+| **Daily prod test** | `pnpm run prod` (after `.env.production` is filled) |
+| **Verify prod env** | `pnpm run verify:supabase && pnpm run check:prod` |
+| **Migrations only** | `pnpm run db:migrate` or `pnpm run db:migrate:prod` |
+| **Full stack from root** | `pnpm run dev` or `pnpm run prod` |

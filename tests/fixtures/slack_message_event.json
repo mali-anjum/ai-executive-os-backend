@@ -1,0 +1,17 @@
+{
+  "token": "XXYYZZ",
+  "team_id": "T061EG9R6",
+  "api_app_id": "A0MD2CDEW",
+  "event": {
+    "type": "message",
+    "user": "U061F7AUR",
+    "text": "We were charged twice on invoice #8842 — please fix billing ASAP",
+    "ts": "1680000000.000100",
+    "channel": "C061EG9SL",
+    "event_ts": "1680000000.000100",
+    "channel_type": "channel"
+  },
+  "type": "event_callback",
+  "event_id": "Ev061F7AUR",
+  "event_time": 1680000000
+}

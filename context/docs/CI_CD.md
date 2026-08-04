@@ -1,0 +1,173 @@
+# CI/CD pipeline
+
+GitHub Actions runs **CI on every pull request** and **CD on every push to `main`**.
+
+| Workflow | File | Trigger |
+|----------|------|---------|
+| **CI** | [`.github/workflows/ci.yml`](../.github/workflows/ci.yml) | Pull requests to `main`, manual dispatch, called by CD |
+| **CD** | [`.github/workflows/cd.yml`](../.github/workflows/cd.yml) | Push to `main`, manual dispatch |
+
+---
+
+## CI — what runs on every PR
+
+| Job | Blocks merge? | What it checks |
+|-----|---------------|----------------|
+| Backend tests | Yes | `pytest tests/unit/` |
+| Frontend tests | Yes | Jest unit tests |
+| Frontend build | Yes | `next build` with CI env vars |
+| Migration check | Yes | `supabase db push` on ephemeral Postgres (pgvector) |
+| Docker build | Yes | `Dockerfile.prod` (backend) + `Dockerfile` (frontend) |
+| Backend typecheck | No (advisory) | Pyright |
+| Frontend lint/typecheck | No (advisory) | ESLint + `tsc --noEmit` |
+
+Run the same checks locally:
+
+```bash
+# Backend
+cd backend
+python3 -m venv .venv && .venv/bin/pip install -r requirements.txt -r requirements-dev.txt
+.venv/bin/python -m pytest tests/unit/ -q
+
+# Frontend
+cd frontend
+pnpm install --frozen-lockfile
+pnpm test -- --ci
+NEXT_PUBLIC_API_URL=http://localhost:8000/api/v1 \
+NEXT_PUBLIC_SUPABASE_URL=https://placeholder.supabase.co \
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=placeholder \
+pnpm run build
+```
+
+---
+
+## CD — what runs on merge to `main`
+
+1. **CI gate** — full CI workflow must pass first.
+2. **Publish backend image** — pushes to GitHub Container Registry (GHCR):
+   - `ghcr.io/<owner>/<repo>/backend:<sha>`
+   - `ghcr.io/<owner>/<repo>/backend:latest`
+3. **Optional jobs** (enabled via repo variables / secrets):
+
+| Job | Enable with | Purpose |
+|-----|-------------|---------|
+| Vercel frontend deploy | `VERCEL_DEPLOY_ENABLED=true` + Vercel secrets | Production Next.js deploy |
+| Supabase migrations | `RUN_PRODUCTION_MIGRATIONS=true` + `DATABASE_URL` secret | `supabase db push` on prod DB |
+| Backend redeploy webhook | `BACKEND_DEPLOY_WEBHOOK_URL` variable | POST to Railway / Render / Fly redeploy hook |
+| E2E smoke | `RUN_E2E_SMOKE=true` + `E2E_BASE_URL` | Playwright against a live URL |
+
+Manual CD without deploy (CI only):
+
+```text
+Actions → CD → Run workflow → skip_deploy: true
+```
+
+---
+
+## One-time setup
+
+### 1. GitHub Environments
+
+Create a **`production`** environment in **Settings → Environments** (optional protection rules / required reviewers).
+
+### 2. Repository secrets
+
+| Secret | Used by | Required for |
+|--------|---------|--------------|
+| `VERCEL_TOKEN` | Vercel deploy | Frontend CD |
+| `VERCEL_ORG_ID` | Vercel deploy | Frontend CD |
+| `VERCEL_PROJECT_ID` | Vercel deploy | Frontend CD |
+| `DATABASE_URL` | Migration job | Prod migrations (`postgresql+asyncpg://...`) |
+| `REDIS_URL` | Migration job | Prod migrations (optional but recommended) |
+| `ENCRYPTION_KEY` | Migration job | Prod migrations |
+
+`GITHUB_TOKEN` is provided automatically for GHCR image push.
+
+### 3. Repository variables
+
+**Settings → Secrets and variables → Actions → Variables**
+
+| Variable | Example | Purpose |
+|----------|---------|---------|
+| `VERCEL_DEPLOY_ENABLED` | `true` | Turn on Vercel CD job |
+| `RUN_PRODUCTION_MIGRATIONS` | `true` | Turn on Alembic against prod |
+| `BACKEND_DEPLOY_WEBHOOK_URL` | `https://api.render.com/...` | Redeploy backend after image push |
+| `RUN_E2E_SMOKE` | `false` | Playwright smoke after deploy |
+| `E2E_BASE_URL` | `https://app.example.com` | Target URL for smoke tests |
+
+### 4. Vercel (frontend)
+
+1. Import the `frontend/` directory as a Vercel project.
+2. Set production env vars in Vercel dashboard:
+   - `NEXT_PUBLIC_API_URL`
+   - `NEXT_PUBLIC_SUPABASE_URL`
+   - `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`
+3. Add `VERCEL_TOKEN`, `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID` to GitHub secrets.
+4. Set `VERCEL_DEPLOY_ENABLED=true`.
+
+### 5. Backend hosting (GHCR + Railway / Render / Fly)
+
+After CD runs, pull the image from GHCR:
+
+```text
+ghcr.io/<github-owner>/ai-executive-os/backend:latest
+```
+
+**Render example**
+
+1. Create a **Web Service** from the GHCR image (or Docker deploy).
+2. Set runtime env vars (`DATABASE_URL`, `REDIS_URL`, `ENCRYPTION_KEY`, `APP_ENV=production`, LLM keys, etc.).
+3. Add a second **Background Worker** service with the same image and command:
+   ```bash
+   celery -A app.tasks.celery_app.celery_app worker --loglevel=info
+   ```
+4. Copy the deploy webhook URL into `BACKEND_DEPLOY_WEBHOOK_URL`.
+
+**Railway example**
+
+1. Deploy from GHCR or connect the repo and use `backend/Dockerfile.prod`.
+2. Add a Celery worker service.
+3. Use Railway’s deploy hook URL for `BACKEND_DEPLOY_WEBHOOK_URL`.
+
+### 6. Production migrations
+
+Enable only when `DATABASE_URL` points at your real production database:
+
+```text
+RUN_PRODUCTION_MIGRATIONS=true
+```
+
+The CD job runs `supabase db push` in the `production` environment before or alongside app deploy.
+
+---
+
+## Architecture
+
+```text
+Pull request ──► CI (tests, build, migrations, docker)
+                      │
+Push to main ──► CD ──┤──► GHCR backend image
+                      ├──► Vercel frontend (optional)
+                      ├──► Alembic prod migrate (optional)
+                      └──► Backend redeploy webhook (optional)
+```
+
+---
+
+## Troubleshooting
+
+| Symptom | Fix |
+|---------|-----|
+| Frontend build fails on Google Fonts | CI has network access; ensure fonts in `layout.tsx` are reachable |
+| Migration job fails | Check `DATABASE_URL` uses `postgresql+asyncpg://` and DB allows GitHub Actions IPs |
+| GHCR push denied | Ensure `packages: write` permission (already set in `cd.yml`) |
+| Vercel job skipped | Set `VERCEL_DEPLOY_ENABLED=true` and add all three Vercel secrets |
+| CD runs but nothing deploys | Only GHCR publish is on by default; enable optional jobs via variables |
+
+---
+
+## Related docs
+
+- [DEV_VS_PRODUCTION.md](./DEV_VS_PRODUCTION.md) — env files and deploy targets
+- [ENV_QUICK_START.md](./ENV_QUICK_START.md) — local vs production env
+- [SUPABASE_REMOTE_DATABASE.md](./SUPABASE_REMOTE_DATABASE.md) — hosted Postgres

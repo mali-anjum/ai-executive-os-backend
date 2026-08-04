@@ -1,0 +1,48 @@
+{
+  "ai_provider": "gemini",
+  "ai_models": {
+    "openai": {
+      "name": "OpenAI (ChatGPT)",
+      "chat_model": "gpt-4o",
+      "grading_model": "gpt-4o-mini"
+    },
+    "gemini": {
+      "name": "Google Gemini",
+      "chat_model": "gemini-2.0-flash",
+      "grading_model": "gemini-2.0-flash"
+    },
+    "groq": {
+      "name": "Groq",
+      "chat_model": "llama-3.3-70b-versatile",
+      "grading_model": "llama-3.1-8b-instant"
+    },
+    "anthropic": {
+      "name": "Anthropic (Claude)",
+      "chat_model": "claude-sonnet-4-20250514",
+      "grading_model": "claude-sonnet-4-20250514"
+    }
+  },
+  "features": {
+    "KNOWLEDGE_AGENT_ENABLED": true,
+    "DOCUMENT_UPLOAD_ENABLED": true,
+    "ANALYTICS_DASHBOARD_ENABLED": true,
+    "PROJECT_AGENT_ENABLED": true,
+    "SLACK_WEBHOOK_ENABLED": true,
+    "JIRA_INTEGRATION_ENABLED": true,
+    "EMAIL_WEBHOOK_ENABLED": true,
+    "WORKLOAD_BALANCING_ENABLED": true,
+    "AUDIT_LOG_ENABLED": true,
+    "RAG_CACHE_ENABLED": true,
+    "MULTI_TENANT_ENABLED": true,
+    "CONFIDENCE_ESCALATION_ENABLED": true,
+    "SLACK_QA_ENABLED": true,
+    "DOCUMENT_RBAC_ENABLED": true,
+    "SSO_ENABLED": true,
+    "CONNECTOR_SYNC_ENABLED": true,
+    "EVALUATION_DASHBOARD_ENABLED": true,
+    "TICKET_APPROVAL_ENABLED": true,
+    "INTEGRATIONS_SETTINGS_ENABLED": true,
+    "DEMO_TENANT_ENABLED": true,
+    "RETRIEVAL_TRACE_ENABLED": true
+  }
+}
