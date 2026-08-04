@@ -22,5 +22,5 @@ greenlet>=3.5.2
 PyJWT>=2.13.0
 cryptography>=49.0.0
 cohere>=7.0.4
-slack_sdk>=3.42.0
+slack_sdk>=3.43.0
 slowapi>=0.1.10
