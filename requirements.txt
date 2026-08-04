@@ -21,6 +21,6 @@ pytest-asyncio>=0.21.0
 greenlet>=3.5.2
 PyJWT>=2.13.0
 cryptography>=49.0.0
-cohere>=7.0.4
+cohere>=7.0.8
 slack_sdk>=3.42.0
 slowapi>=0.1.10
