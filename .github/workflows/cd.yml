@@ -57,6 +57,12 @@ jobs:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: |
           DB_URL="${DATABASE_URL/postgresql+asyncpg/postgresql}"
+          # Supabase pooler: port 6543 = transaction mode (no DDL).
+          # Migrations need session mode on 5432 — same logic as scripts/db_push.sh.
+          if [[ "$DB_URL" == *".pooler.supabase.com:6543"* ]]; then
+            DB_URL="${DB_URL/:6543/:5432}"
+            echo "Note: switched pooler port 6543 → 5432 (session mode required for migrations)"
+          fi
           supabase db push --db-url "$DB_URL"
 
   publish-backend:
