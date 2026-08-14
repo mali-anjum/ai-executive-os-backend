@@ -179,7 +179,8 @@ async def get_current_user(
 
 
 def require_admin(auth: AuthContext = Depends(get_current_user)) -> AuthContext:
-    if auth.role != "admin":
+    """Owner or admin only — org administration, invitations, members."""
+    if auth.role not in ("owner", "admin"):
         logger.warning(
             "auth_admin_required_denied",
             extra={
@@ -192,14 +193,14 @@ def require_admin(auth: AuthContext = Depends(get_current_user)) -> AuthContext:
         )
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Admin role required",
+            detail="Admin or owner role required",
         )
     return auth
 
 
 def require_leadership(auth: AuthContext = Depends(get_current_user)) -> AuthContext:
-    """Admin or manager — analytics, executive summary, evaluation."""
-    if auth.role not in ("admin", "manager"):
+    """Owner, admin or manager — analytics, executive summary, evaluation."""
+    if auth.role not in ("owner", "admin", "manager"):
         logger.warning(
             "auth_leadership_required_denied",
             extra={
@@ -212,7 +213,7 @@ def require_leadership(auth: AuthContext = Depends(get_current_user)) -> AuthCon
         )
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Admin or manager role required",
+            detail="Owner, admin or manager role required",
         )
     return auth
 

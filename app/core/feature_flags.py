@@ -79,6 +79,10 @@ class FeatureFlags:
         return is_enabled("EVALUATION_DASHBOARD_ENABLED")
 
     @property
+    def ORG_MANAGEMENT_ENABLED(self) -> bool:
+        return is_enabled("ORG_MANAGEMENT_ENABLED")
+
+    @property
     def TICKET_APPROVAL_ENABLED(self) -> bool:
         return is_enabled("TICKET_APPROVAL_ENABLED")
 

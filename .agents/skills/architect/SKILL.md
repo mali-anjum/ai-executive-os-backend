@@ -124,4 +124,10 @@ These are non-negotiable. Any plan that breaks one must be stopped before code i
 8. A new service/router/flag that duplicates an existing one.
 9. A schema change without its `tables.py` mirror + RLS policy (new tables) + FK index.
 10. Any plan missing the type-mirror / OpenAPI update if the frontend contract changes.
+11. **Org-layer CRUD (organizations, users.org_id/role, organization_memberships,
+    invitations, org settings) in FastAPI.** This is Supabase-native territory:
+    read/write via PostgREST + RLS, bootstrap via `on_auth_user_created` trigger,
+    membership moves via a `SECURITY DEFINER` RPC (e.g. `accept_org_invitation`).
+    FastAPI keeps only operations that need a server secret / LLM / external call
+    (knowledge/RAG, tickets, analytics, connectors).
 

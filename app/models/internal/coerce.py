@@ -38,8 +38,11 @@ def as_ai_provider_id(value: str) -> AiProviderId:
 
 
 def as_user_role(value: str) -> UserRole:
-    if value == "admin":
+    normalized = value.strip().lower()
+    if normalized == "owner":
+        return "owner"
+    if normalized == "admin":
         return "admin"
-    if value == "manager":
+    if normalized == "manager":
         return "manager"
     return "employee"

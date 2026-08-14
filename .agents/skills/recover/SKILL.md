@@ -123,4 +123,8 @@ The worst thing you can do when something is broken is keep doing the same thing
 5. Never use `AsyncSessionLocal` in a Celery worker — use `CeleryAsyncSessionLocal`.
 6. Never bypass a feature flag with a half-implementation — gate with HTTP 404 when disabled.
 7. After two failed root-cause fixes, re-diagnose (this may be Failure Mode 2 or 3, not Mode 1).
+8. **Adding a FastAPI org endpoint for a row an RLS policy already covers**
+   (organizations, users.org_id/role, organization_invitations, org settings) —
+   this is the "duplicate the org layer" failure mode. Use Supabase PostgREST +
+   RLS + trigger/RPC instead; FastAPI keeps only secrets/LLM/external calls.
 

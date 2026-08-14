@@ -7,7 +7,7 @@ AI has no memory between sessions. Every new session starts blank. This skill fi
 
 ## Security Boundary
 
-This skill must **never** persist secrets. If any sensitive value appears, do not copy it to `memory.md`.
+This skill must **never** persist secrets. If any sensitive value appears, do not add it to `.agents/STATE.md`.
 
 Sensitive data includes: API keys, access tokens, refresh tokens, session tokens, passwords, one-time codes, private keys, certificates, cookies, auth headers, connection strings, webhook secrets, and any credential-like value. This repo has real secrets in `.env.dev` and `.env.production` (`DATABASE_URL`, `SUPABASE_*`, `GEMINI_API_KEY`, `OPENAI_API_KEY`, `ENCRYPTION_KEY`, Slack/Jira tokens) — never capture them.
 
@@ -39,45 +39,37 @@ Extract only what a developer needs to continue in a fresh context. Not a transc
 
 Before writing, run a final safety scan for secrets and confirm with the developer. Only write after they say yes.
 
-### Format
+### Where it lives — one file, the whole truth
 
-```markdown
-# Memory — [Feature or Session Name]
+There is **one** persistent file: **`.agents/STATE.md`** (project root, beside
+`AGENTS.md`). Do **not** create new memory/state files (`memory.md`, `session.md`,
+…). That single file is maintained **from the very first sprint to the last** —
+each session updates the same file, so it grows and stays the single source of truth.
 
-Last updated: [date and time]
+### Update in place (append + refine, keep it condensed)
 
-## What was built
-[Specific files, migrations, services, routers]
+- **`## Current (latest sprint)`** — overwrite with this sprint's state: what was
+  built (real files, migrations, flags), decisions, current flags (committed vs
+  uncommitted, broken vs working).
+- **`## Sprint Ledger`** — append a short, condensed entry for this sprint
+  (newest on top). Never rewrite history; just add the newest line.
+- **`## Decisions & foundations`** — add any new long-lived rule. Keep it tight.
+- **`## Next session starts with`** / **`## Open questions`** — refresh each session.
 
-## Decisions made
-[Architectural choices future work depends on]
+Keep everything **condensed**: prune superseded detail so the file stays the whole
+truth, not a transcript. Confirm after writing:
 
-## Problems solved
-[Issues resolved so they are not solved again]
-
-## Current state
-[What works, what is partial, what is broken]
-
-## Next session starts with
-[The first thing to do]
-
-## Open questions
-[Anything unresolved]
 ```
-
-Write this to `memory.md` in the **project root** (same level as `AGENTS.md`). Confirm:
-
-```text
-Memory saved to memory.md.
+State updated in .agents/STATE.md.
 
 Next session: run /remember restore to pick up from here.
 ```
 
 ## Restore Mode
 
-Look for `memory.md` in the project root. If it does not exist, tell the developer it appears to be the first session or the file was not saved.
+Read **`.agents/STATE.md`** in the project root. If it does not exist, tell the developer it appears to be the first session or the file was not saved.
 
-Read `memory.md`, then check only these context files if present: `CLAUDE.md`, `.claude/context.md`, `.github/copilot-instructions.md`, `.cursorrules`, `.cursor/rules/`, `.windsurfrules`, `AGENTS.md`, `.clinerules`, `context.md`. Then read `context/code-desing-patterns.md`, `context/progress.md`, and `supabase/README.md` for this repo's rules. Never scan beyond this list.
+Read `.agents/STATE.md`, then check only these context files if present: `CLAUDE.md`, `.claude/context.md`, `.github/copilot-instructions.md`, `.cursorrules`, `.cursor/rules/`, `.windsurfrules`, `AGENTS.md`, `.clinerules`, `context.md`. Then read `context/code-desing-patterns.md`, `context/progress.md`, and `supabase/README.md` for this repo's rules. Never scan beyond this list.
 
 Never surface raw secrets from restored context — summarise in redacted form only. Remember: this repo's env files hold real credentials; never repeat them.
 
