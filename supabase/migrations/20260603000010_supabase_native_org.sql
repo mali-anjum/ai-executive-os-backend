@@ -29,9 +29,18 @@ BEGIN
         RETURN NEW;
     END IF;
 
-        INSERT INTO public.organizations (id, name)
-    VALUES (v_org_id, v_org_name)
-    ON CONFLICT (id) DO NOTHING;
+    -- Only bootstrap a BRAND-NEW org here. If v_org_id already exists this is a
+    -- self-claimed org (privilege-escalation risk) — do NOT attach; the user must
+    -- join via accept_org_invitation() with a matching invite.
+    IF EXISTS (SELECT 1 FROM public.organizations WHERE id = v_org_id) THEN
+        RETURN NEW;
+    END IF;
+
+    INSERT INTO public.organizations (id, name)
+    VALUES (v_org_id, v_org_name);
+
+    -- First member of a new org is its owner (overrides any client-claimed role).
+    v_role := 'owner';
 
     -- public.users columns (per 0001): id, email, role, org_id, created_at.
     INSERT INTO public.users (id, email, role, org_id)
@@ -68,7 +77,7 @@ DECLARE
     v_inv     public.organization_invitations%ROWTYPE;
     v_role    text;
 BEGIN
-        v_user_id := auth.uid();
+    v_user_id := auth.uid();
     IF v_user_id IS NOT NULL THEN
         SELECT email INTO v_email FROM auth.users WHERE id = v_user_id;
     END IF;

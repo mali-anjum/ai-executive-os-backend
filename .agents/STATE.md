@@ -117,6 +117,10 @@ supabase-js; they remain now only as a working reference.*
   pending status — confirmed normalized at insert; same guard in `accept_org_invitation`.
 - RLS admin policies (`users_admin_all`, `documents_admin_write`) are admin-only;
   include `owner` if owners need PostgREST self-service member/document management.
+- Trust-model caveat: `auth_org_id()` and `accept_org_invitation()` read
+  `user_metadata` from the JWT (client-set at signup). `handle_new_user` hardens
+  only the org-*bootstrap* vector (refuses to attach to a pre-existing org); fully
+  eliminating JWT-set org_id is an auth-roles refactor for later.
 
 ## Hard rules (inherit every session)
 - Never persist secrets (.env.*). Supabase migrations only. Every tenant-owned
