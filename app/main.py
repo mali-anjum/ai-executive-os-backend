@@ -17,7 +17,6 @@ from app.api.v1.routers import (
     evaluation,
     health,
     ingest,
-    orgs,
     profile,
     query,
     settings as settings_router,
@@ -79,7 +78,6 @@ app.add_middleware(
 api_prefix = "/api/v1"
 app.include_router(health.router, prefix=api_prefix, tags=["health"])
 app.include_router(profile.router, prefix=api_prefix, tags=["profile"])
-app.include_router(orgs.router, prefix=api_prefix, tags=["organizations"])
 app.include_router(ingest.router, prefix=api_prefix, tags=["documents"])
 app.include_router(query.router, prefix=api_prefix, tags=["knowledge"])
 app.include_router(analytics.router, prefix=api_prefix, tags=["analytics"])

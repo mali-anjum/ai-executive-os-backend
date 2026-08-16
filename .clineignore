@@ -1,0 +1,15 @@
+node_modules/
+.next/
+dist/
+build/
+venv/
+.venv/
+__pycache__/
+*.lock
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+.git/
+*.svg
+*.png
+*.jpg

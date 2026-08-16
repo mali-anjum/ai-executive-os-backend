@@ -5,7 +5,6 @@ from pydantic import BaseModel, Field
 
 from app.models.http.enums import (
     DocumentStatus,
-    InvitationStatus,
     TicketSource,
     TicketStatus,
     UserRole,
@@ -228,85 +227,4 @@ class ConnectorSyncResponse(BaseModel):
     error_message: str | None = None
 
     model_config = {"from_attributes": True}
-
-
-# ---------------------------------------------------------------------------
-# Sprint 4 — Organization / multi-tenant onboarding
-# ---------------------------------------------------------------------------
-
-
-class OrganizationResponse(BaseModel):
-    id: uuid.UUID
-    name: str
-    slug: str | None = None
-    plan: str = "standard"
-    industry: str | None = None
-    logo_url: str | None = None
-    website: str | None = None
-    timezone: str = "UTC"
-    settings_json: dict | None = None
-    created_at: datetime
-
-    model_config = {"from_attributes": True}
-
-
-class OrgContextResponse(BaseModel):
-    org: OrganizationResponse
-    role: UserRole
-    onboarding_completed: bool = False
-
-
-class OrgUpdateRequest(BaseModel):
-    name: str | None = Field(default=None, min_length=2, max_length=255)
-    industry: str | None = Field(default=None, max_length=64)
-    website: str | None = Field(default=None, max_length=255)
-    timezone: str | None = Field(default=None, max_length=64)
-    logo_url: str | None = Field(default=None, max_length=512)
-
-
-class OnboardingUpdateRequest(BaseModel):
-    completed: bool
-    step: str | None = Field(default=None, max_length=64)
-
-
-class MemberResponse(BaseModel):
-    id: uuid.UUID
-    email: str
-    full_name: str | None = None
-    job_title: str | None = None
-    role: UserRole
-    department: str | None = None
-    org_id: uuid.UUID
-    created_at: datetime
-
-    model_config = {"from_attributes": True}
-
-
-class InvitationCreateRequest(BaseModel):
-    email: str = Field(..., max_length=320)
-    role: UserRole = "employee"
-    department: str | None = Field(default=None, max_length=64)
-    expires_in_days: int = Field(default=7, ge=1, le=30)
-
-
-class InvitationResponse(BaseModel):
-    id: uuid.UUID
-    org_id: uuid.UUID
-    email: str
-    role: UserRole
-    department: str | None = None
-    status: InvitationStatus
-    expires_at: datetime
-    invited_by: uuid.UUID | None = None
-    accepted_at: datetime | None = None
-    created_at: datetime
-
-    model_config = {"from_attributes": True}
-
-
-class AcceptInvitationResponse(BaseModel):
-    org_id: uuid.UUID
-    org_name: str
-    org_slug: str | None = None
-    role: UserRole
 

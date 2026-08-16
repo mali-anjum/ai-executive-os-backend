@@ -10,4 +10,3 @@ TicketStatus = Literal[
 ]
 TicketSource = Literal["slack", "manual", "api"]
 ApprovalStatus = Literal["auto_approved", "pending", "pending_approval", "approved", "rejected"]
-InvitationStatus = Literal["pending", "accepted", "revoked", "expired"]
