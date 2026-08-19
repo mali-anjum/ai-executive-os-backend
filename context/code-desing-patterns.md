@@ -192,7 +192,7 @@ def process_document_task(document_id: str) -> str:
 5. Router endpoint(s) with auth + feature flag.
 6. Pydantic schemas.
 7. Unit tests.
-8. Update `context/progress.md`.
+8. Update `.agents/STATE.md` (Sprint Ledger).
 
 ---
 

@@ -69,7 +69,7 @@ Next session: run /remember restore to pick up from here.
 
 Read **`.agents/STATE.md`** in the project root. If it does not exist, tell the developer it appears to be the first session or the file was not saved.
 
-Read `.agents/STATE.md`, then check only these context files if present: `CLAUDE.md`, `.claude/context.md`, `.github/copilot-instructions.md`, `.cursorrules`, `.cursor/rules/`, `.windsurfrules`, `AGENTS.md`, `.clinerules`, `context.md`. Then read `context/code-desing-patterns.md`, `context/progress.md`, and `supabase/README.md` for this repo's rules. Never scan beyond this list.
+Read `.agents/STATE.md`, then check only these context files if present: `CLAUDE.md`, `.claude/context.md`, `.github/copilot-instructions.md`, `.cursorrules`, `.cursor/rules/`, `.windsurfrules`, `AGENTS.md`, `.clinerules`, `context.md`. Then read `context/code-desing-patterns.md` and `supabase/README.md` for this repo's rules. Never scan beyond this list.
 
 Never surface raw secrets from restored context — summarise in redacted form only. Remember: this repo's env files hold real credentials; never repeat them.
 

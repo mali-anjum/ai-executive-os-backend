@@ -11,7 +11,7 @@ You are working in the **backend** repo (`ai-executive-os-backend`): FastAPI + S
 
 - `AGENTS.md` — the mandatory reading list and hard rules.
 - `context/code-desing-patterns.md` — **authoritative** architecture, layers, drift guards, and the "add a feature" checklist.
-- `context/progress.md` — current migration/initiative status.
+- `.agents/STATE.md` — current migration/initiative status (the living state file).
 - `supabase/README.md` — the migration protocol.
 - `README.md` + `context/docs/PROJECT_MASTER.md` — full spec.
 
