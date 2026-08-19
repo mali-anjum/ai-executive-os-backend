@@ -11,7 +11,7 @@
 
     "db:check": "ENV_FILE=.env.dev .venv/bin/python scripts/check_services.py",
     "db:migrate": "bash scripts/db_push.sh .env.dev",
-    "db:migration:list": "bash -c 'set -a && source .env.dev && set +a && DB_URL=\"${DATABASE_URL/postgresql+asyncpg/postgresql}\"; DB_URL=\"${DB_URL/:6543/:5432}\"; supabase migration list --db-url \"$DB_URL\"'",
+    "db:migration:list": "bash -c 'set -a && source .env.dev && set +a && DB_URL=\"${DATABASE_URL/postgresql+asyncpg/postgresql}\"; DB_URL=\"${DB_URL/:6543/:5432}\"; PGSSLMODE=disable supabase migration list --db-url \"$DB_URL\"'",
     "db:check:prod": "ENV_FILE=.env.production .venv/bin/python scripts/check_services.py",
     "db:migrate:prod": "bash scripts/db_push.sh .env.production",
 
@@ -32,10 +32,10 @@
     "test:ci": ".venv/bin/python -m pytest tests/unit/ -q --tb=short",
     "typecheck": ".venv/bin/python -m pyright app",
 
-    "predev": "pnpm run check:celery && pnpm run db:check && pnpm run db:migrate",
+    "predev": "pnpm run deps:docker:all && pnpm run check:celery && pnpm run db:check && pnpm run db:migrate",
     "preprod": "pnpm run verify:supabase && pnpm run check:prod && pnpm run check:celery && pnpm run db:check:prod && pnpm run db:migrate:prod",
 
-    "dev": "pnpm run deps:docker:all && pnpm run check:env && concurrently -k -n api,worker -c blue,magenta \"pnpm run api\" \"pnpm run worker\"",
+    "dev": "pnpm run check:env && concurrently -k -n api,worker -c blue,magenta \"pnpm run api\" \"pnpm run worker\"",
     "prod": "concurrently -k -n api,worker -c blue,magenta \"pnpm run api:prod\" \"pnpm run worker:prod\"",
     "dev:prod": "pnpm run prod",
 

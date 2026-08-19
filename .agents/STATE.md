@@ -45,7 +45,26 @@
 
 ## Sprint Ledger (append-only, condensed — newest on top)
 
+### Document-level RBAC in vector retrieval (L3)
+- **(2026-08-19)** Migration `0012_document_rbac_vector_retrieval.sql` adds the
+  `search_document_chunks()` SECURITY DEFINER RPC (permission-aware pgvector
+  search). Authorization (org isolation + `allowed_roles`/`allowed_departments`,
+  owner/admin full access) now runs inside PostgreSQL before any chunk is returned;
+  EXECUTE is revoked from PUBLIC so clients can't call it via PostgREST.
+- `VectorService.similarity_search` now calls the RPC (raw `text()` SQL) and returns
+  `list[RagChunkItem]`; `KnowledgeAgent._retrieve` passes server-derived org/role/
+  department instead of composing a Python `access_filter`. `DocumentAccessService`
+  gained owner parity (owner == admin). Retrieval RBAC is always enforced at the DB
+  boundary (independent of `DOCUMENT_RBAC_ENABLED`, which still gates the management
+  UI). No frontend changes (API contract unchanged). Validated end-to-end against
+  local Docker Postgres (org isolation + role/department scenarios) + unit tests.
+
 ### Sprint 4 — Organizations & multi-tenancy
+- **(2026-08-18)** Migration `0011_owner_rbac_policies.sql` — `users_admin_all` +
+  `documents_admin_write` RLS now include `owner` (parity with admin authority).
+  Backend `.env.dev` restored to local dev (Docker Postgres `5433` + local Redis,
+  `APP_ENV=development`); production values remain in `.env.production`
+  (previous prod content backed up to `.env.dev.prod-bak`).
 - Owner RBAC fix + centralized `app/core/rbac.py`.
 - `organization_invitations` migration + model + full invitation lifecycle
   (create/list/revoke/accept) + org context/settings/onboarding endpoints.
@@ -90,13 +109,18 @@
   an arbitrary org.
 
 ## Next session starts with
-1. Apply migrations `0009` + `0010` (`pnpm run db:migrate`) and validate
+1. Apply migrations `0009` + `0010` + `0011` (`pnpm run db:migrate`) and validate
    `handle_new_user` (signup bootstrap) + `accept_org_invitation()` RPC end-to-end.
-2. Wire the invitation-accept entry point (invite link/token → target org): the
-   RPC takes the invited org's id, but a new user cannot read invitations via
-   RLS (no org yet). Resolve via invite token/link before calling the RPC.
-3. (Gap) extend `users_admin_all` + `documents_admin_write` RLS to include `owner`
-   so owner can manage members/documents via PostgREST without FastAPI.
+2. Finish the invitation-accept entry point (frontend now reads the invited org id
+   from `?org=<org_id>`; the remaining piece is generating that link from the
+   invitation `token`).
+3. (Done) extend `users_admin_all` + `documents_admin_write` RLS to include `owner`
+   → migration `0011_owner_rbac_policies.sql` (not yet applied).
+
+## Backlog / not started
+
+- **Wire Celery beat for connector sync cron** (Medium) — task exists; needs deploy schedule.
+- **SSO / SCIM** (Low) — enterprise tier.
 
 ## Open questions
 - (Resolved) FastAPI org endpoints vs Supabase-native org layer → **Supabase-native.**
