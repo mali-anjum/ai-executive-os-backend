@@ -35,7 +35,6 @@ from app.models.http.stream import (
 )
 from app.core.feature_flags import flags
 from app.services.confidence_service import ConfidenceService
-from app.services.document_access_service import DocumentAccessService
 from app.services.embedding_service import EmbeddingService
 from app.services.escalation_service import EscalationService
 from app.services.grading_service import GradingService
@@ -70,7 +69,6 @@ class KnowledgeAgent:
         self.grader = GradingService()
         self.reranker = RerankService()
         self.confidence = ConfidenceService()
-        self.access = DocumentAccessService()
         self.escalation = EscalationService()
         self.expansion = QueryExpansionService()
         self.graph = self._build_graph()
@@ -165,33 +163,17 @@ class KnowledgeAgent:
     ) -> list[RagChunkItem]:
         embedding = await self.embedder.embed(query)
         min_score = 0.2 if self.embedder.uses_openai_embeddings else 0.0
-        access_filter = None
-        if flags.DOCUMENT_RBAC_ENABLED:
-            access_filter = self.access.sqlalchemy_access_filter(
-                role=user_role,
-                department=user_department,
-            )
-        rows = await self.vector.similarity_search(
+        # Authorization (org isolation + document-level RBAC) is enforced inside
+        # the permission-aware RPC; org_id / role / department are server-derived.
+        return await self.vector.similarity_search(
             db,
             embedding,
             org_id=org_id,
+            role=user_role,
+            department=user_department,
             top_k=settings.retrieval_top_k,
             min_score=min_score,
-            access_filter=access_filter,
         )
-        items: list[RagChunkItem] = []
-        for chunk, score, document in rows:
-            items.append(
-                {
-                    "chunk_id": chunk.id,
-                    "document_id": document.id,
-                    "content": chunk.content,
-                    "document_name": document.filename,
-                    "page_number": chunk.page_number,
-                    "score": score,
-                }
-            )
-        return items
 
     async def _retrieve_expanded(
         self,

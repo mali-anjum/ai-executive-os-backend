@@ -36,6 +36,16 @@ if [[ "$DB_URL" == *".pooler.supabase.com:6543"* ]]; then
   echo "Note: switched pooler port 6543 → 5432 (session mode required for migrations)" >&2
 fi
 
+# Local Docker Postgres has no TLS; the Supabase CLI defaults to sslmode=require
+# unless PGSSLMODE is explicitly disabled (a ?sslmode= query param gets mangled).
+if [[ "$DB_URL" == *"127.0.0.1"* || "$DB_URL" == *"localhost"* ]]; then
+  export PGSSLMODE=disable
+  # Migrations 0007+ reference Supabase Auth (auth.jwt(), auth.users, the
+  # `authenticated` role), which bare Docker Postgres lacks. Create stubs only
+  # for local DBs — never for the hosted Supabase project.
+  bash "$ROOT/scripts/prepare_local_db.sh" "$DB_URL"
+fi
+
 MASKED_URL="$(echo "$DB_URL" | sed -E 's#(://[^:]+:)[^@]+#\1***#')"
 echo "Applying Supabase migrations → $MASKED_URL"
 
