@@ -18,7 +18,7 @@ class DocumentAccessService:
         role: str,
         department: str | None,
     ) -> bool:
-        if role == "admin":
+        if role in ("owner", "admin"):
             return True
         allowed_roles = document.allowed_roles or []
         if allowed_roles and role not in allowed_roles:
@@ -29,8 +29,8 @@ class DocumentAccessService:
         return True
 
     def sqlalchemy_access_filter(self, *, role: str, department: str | None):
-        """Admin sees all org docs; others must match allowed_roles / allowed_departments."""
-        if role == "admin":
+        """Owner/admin see all org docs; others must match allowed_roles / allowed_departments."""
+        if role in ("owner", "admin"):
             return true()
 
         role_match = or_(
