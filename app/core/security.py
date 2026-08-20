@@ -123,10 +123,13 @@ async def get_current_user(
 
     user_metadata = payload.get("user_metadata") or {}
     app_metadata = payload.get("app_metadata") or {}
-    org_raw = user_metadata.get("org_id") or app_metadata.get("org_id") or x_org_id
+    # app_metadata is server-owned (clients can only write user_metadata via
+    # supabase.auth.updateUser), so it is the authoritative source for tenant
+    # identity. user_metadata is kept only as a backwards-compatible fallback.
+    org_raw = app_metadata.get("org_id") or user_metadata.get("org_id") or x_org_id
     role_raw = (
-        user_metadata.get("role")
-        or app_metadata.get("role")
+        app_metadata.get("role")
+        or user_metadata.get("role")
         or x_user_role
         or "employee"
     ).lower()

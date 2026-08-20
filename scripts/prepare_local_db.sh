@@ -37,12 +37,17 @@ STABLE
 AS $$ SELECT NULL::uuid $$;
 
 -- auth.users: the table the signup trigger in migration 0010 targets.
+-- raw_app_meta_data is written by handle_new_user() / accept_org_invitation()
+-- (migration 0013) so RLS can prefer server-owned app_metadata over the
+-- client-editable user_metadata.
 CREATE TABLE IF NOT EXISTS auth.users (
     id                   uuid PRIMARY KEY,
     email                text,
     raw_user_meta_data   jsonb DEFAULT '{}'::jsonb,
+    raw_app_meta_data    jsonb DEFAULT '{}'::jsonb,
     created_at           timestamptz DEFAULT now()
 );
+ALTER TABLE auth.users ADD COLUMN IF NOT EXISTS raw_app_meta_data jsonb DEFAULT '{}'::jsonb;
 SQL
 
 echo "Local Supabase Auth stubs ready."
