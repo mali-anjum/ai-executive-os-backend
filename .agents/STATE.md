@@ -39,11 +39,29 @@
   layer (bootstrap, invitations, membership, settings) via RLS + PostgREST +
   trigger/RPC; FastAPI keeps LLM/RAG/tickets/analytics/integrations and all the ai related and other logics that cannot be done with the supabase. The
   duplicate FastAPI org endpoints/service/rbac/schemas/model/tests were removed.
-- Migrations `0009` + `0010` **not applied** → run `pnpm run db:migrate` before use.
+- Migrations `0009`–`0014` **not applied** → run `pnpm run db:migrate` before use.
 - `pyright app` errors are pre-existing environment issues (missing deps in
   `.venv`, repo-wide `AsyncSession.add` complaint) — not from this work.
 
 ## Sprint Ledger (append-only, condensed — newest on top)
+
+### Tenant-isolation hardening (org_id/role escalation)
+- **(2026-08-20)** Migration `0013_harden_org_tenant_isolation.sql` closes two
+  escalation holes: (a) `users_update_self` let any user rewrite their own
+  `org_id`/`role` — added a `users_prevent_privilege_escalation` BEFORE UPDATE
+  trigger (blocks direct `org_id` changes + self `role` changes for
+  `authenticated`/`anon`) and tightened `users_update_self` WITH CHECK; (b)
+  `auth_org_id()`/`auth_user_role()` trusted client-editable `user_metadata` —
+  now prefer server-owned `app_metadata` (written by `handle_new_user` /
+  `accept_org_invitation`), `user_metadata` kept as backwards-compatible fallback;
+  existing rows backfilled from `public.users`. `security.py` (`get_current_user`)
+  mirrors the app_metadata-first order. `scripts/prepare_local_db.sh` gained the
+  `raw_app_meta_data` stub column.
+- **(2026-08-20)** Migration `0014_sso_org_bootstrap.sql` extracts
+  `bootstrap_new_org_owner()` (shared by `handle_new_user` + a new
+  `on_auth_user_metadata_updated` AFTER-UPDATE trigger) so SSO "complete profile"
+  (`auth.updateUser`) bootstraps the org + app_metadata like signup. No frontend
+  changes.
 
 ### Document-level RBAC in vector retrieval (L3)
 - **(2026-08-19)** Migration `0012_document_rbac_vector_retrieval.sql` adds the
@@ -109,8 +127,9 @@
   an arbitrary org.
 
 ## Next session starts with
-1. Apply migrations `0009` + `0010` + `0011` (`pnpm run db:migrate`) and validate
-   `handle_new_user` (signup bootstrap) + `accept_org_invitation()` RPC end-to-end.
+1. Apply migrations `0009`–`0014` (`pnpm run db:migrate`) and validate
+   `handle_new_user` (signup bootstrap), `accept_org_invitation()` RPC, and the
+   SSO bootstrap trigger (`on_auth_user_metadata_updated`) end-to-end.
 2. Finish the invitation-accept entry point (frontend now reads the invited org id
    from `?org=<org_id>`; the remaining piece is generating that link from the
    invitation `token`).
@@ -128,10 +147,12 @@
   pending status — confirmed normalized at insert; same guard in `accept_org_invitation`.
 - RLS admin policies (`users_admin_all`, `documents_admin_write`) are admin-only;
   include `owner` if owners need PostgREST self-service member/document management.
-- Trust-model caveat: `auth_org_id()` and `accept_org_invitation()` read
-  `user_metadata` from the JWT (client-set at signup). `handle_new_user` hardens
-  only the org-*bootstrap* vector (refuses to attach to a pre-existing org); fully
-  eliminating JWT-set org_id is an auth-roles refactor for later.
+- Trust-model caveat (mostly resolved by `0013`/`0014`): `auth_org_id()` /
+  `auth_user_role()` now prefer server-owned `app_metadata` (set by
+  `handle_new_user`, `accept_org_invitation`, and the SSO bootstrap trigger) and
+  only fall back to `user_metadata`. The fallback still honors client-set
+  `user_metadata` for users whose `app_metadata` was never populated — dropping the
+  `user_metadata` fallback entirely is the remaining auth-roles refactor.
 
 ## Hard rules (inherit every session)
 - Never persist secrets (.env.*). Supabase migrations only. Every tenant-owned
